@@ -16,6 +16,9 @@ class Gmp < Formula
   option "32-bit"
   option :cxx11
 
+  # Fix invalid operand size in assembler instruction (manifested only with LTO)
+  patch :DATA
+
   def install
     ENV.cxx11 if build.cxx11?
     args = ["--prefix=#{prefix}", "--enable-cxx"]
@@ -50,3 +53,18 @@ class Gmp < Formula
     system "./test"
   end
 end
+
+__END__
+diff --git a/gmp-impl.h b/gmp-impl.h
+index 6987581..dcc233b 100644
+--- a/gmp-impl.h
++++ b/gmp-impl.h
+@@ -2687,7 +2687,7 @@ __GMP_DECLSPEC mp_bitcnt_t mpn_remove (mp_ptr, mp_size_t *, mp_srcptr, mp_size_t
+ 	   ASM_L(done) ":\n"						\
+ 	   : "=r" (__ptr_dummy)						\
+ 	   : "0"  (ptr),						\
+-	     "ri" ((mp_limb_t) (incr)), "n" (sizeof(mp_limb_t))		\
++	     "re" ((mp_limb_t) (incr)), "n" (sizeof(mp_limb_t))		\
+ 	   : "memory");							\
+       }									\
+   } while (0)
